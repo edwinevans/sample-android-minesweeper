@@ -14,23 +14,20 @@ import java.util.Random
 class MainActivity : AppCompatActivity() {
     val TAG = "MainActivity"
 
+    var game = Game(numRows = 8, numColumns = 5, numBombs = 6, gameState = GameState.PLAYING)
+
     enum class GameState { WON, LOST, PLAYING }
     class Game(val numRows : Int, val numColumns : Int, val numBombs : Int, var gameState : GameState)
     class CellInfo(val isBomb: Boolean, val location: Location, var isOpen : Boolean)
     class Location(val row: Int, val col: Int)
 
-    var game = Game(numRows = 8, numColumns = 5, numBombs = 6, gameState = GameState.PLAYING)
-
     // UI views for each cell
     var cellViews = Array(game.numRows) { arrayOfNulls<Button>(game.numColumns) }
-    fun getCellView(row: Int, col: Int): Button {
-        return cellViews[row][col]!!
-    }
+    fun getCellView(row: Int, col: Int): Button { return cellViews[row][col]!! }
 
     // Data for each cell
     var board = Array(game.numRows) { arrayOfNulls<CellInfo>(game.numColumns) }
     fun getCellInfo(row: Int, col: Int): CellInfo { return board[row][col]!! }
-
 
     private fun getNumSurroundingBombs(loc: Location): Int {
         var count = 0
@@ -93,16 +90,11 @@ class MainActivity : AppCompatActivity() {
         // Create board and place bombs
         for (row in 0..game.numRows - 1) {
             for (col in 0..game.numColumns - 1) {
-                var isBomb = false
-                val location = row * game.numRows + col
-
-                if (bombLocations.contains(location)) {
-                    isBomb = true
-                }
-
-                val cellInfo = CellInfo(isBomb, Location(row, col), false)
+                val location = row * game.numColumns + col
+                val isBomb = bombLocations.contains(location);
+                val cellInfo = CellInfo(
+                        isBomb = isBomb, location = Location(row, col), isOpen = false)
                 board[row][col] = cellInfo
-
             }
         }
     }
@@ -124,10 +116,7 @@ class MainActivity : AppCompatActivity() {
                 button.textSize = 16f
                 cellViews[row][col] = button
                 linearLayoutRow.addView(button)
-
-                button.setOnClickListener { v ->
-                    handleButtonClick(v.tag as CellInfo)
-                }
+                button.setOnClickListener { handleButtonClick(it.tag as CellInfo) }
             }
 
             myLayout.addView(linearLayoutRow)
@@ -137,13 +126,11 @@ class MainActivity : AppCompatActivity() {
     private fun updateBoardUI() {
         for (row in 0..game.numRows - 1) {
             for (col in 0..game.numColumns - 1) {
-                val cellInfo = getCellInfo(row, col)
-                var textToShow = ""
-                if (cellInfo.isOpen || game.gameState == GameState.LOST) {
-                    textToShow = if (cellInfo.isBomb) "X"
-                        else getNumSurroundingBombs(Location(row, col)).toString()
+                val cellView = getCellView(row, col)
+                cellView.text = getTextToShow(Location(row, col))
+                if (getCellInfo(row, col).isOpen) {
+                    cellView.setBackgroundColor(Color.GREEN)
                 }
-                getCellView(row, col).text = textToShow
             }
         }
 
@@ -158,6 +145,27 @@ class MainActivity : AppCompatActivity() {
             background.setBackgroundColor(Color.RED)
         } else {
             background.setBackgroundColor(Color.WHITE)
+        }
+    }
+
+    private fun getTextToShow(loc : Location): String {
+        val cellInfo = getCellInfo(loc.row, loc.col)
+        val reveal = cellInfo.isOpen || game.gameState != GameState.PLAYING
+        if (reveal) {
+            if (cellInfo.isBomb) {
+                return "X"
+            }
+            else {
+                val numSurrounding = getNumSurroundingBombs(loc)
+                when (numSurrounding) {
+                    0 -> return "0"
+                    else -> return numSurrounding.toString()
+                }
+
+            }
+        }
+        else {
+            return "?";
         }
     }
 
@@ -178,24 +186,22 @@ class MainActivity : AppCompatActivity() {
             if (col < 0 || col >= game.numColumns) {
                 return
             }
-            try {
-                if (getCellInfo(row, col).isOpen) {
-                    return  // already opened this [safe algo???]
-                }
-            } catch (ex: Exception) {
-                Log.d(TAG, "huhh???")
+            if (getCellInfo(row, col).isOpen) {
+                return  // don't recurse forever
             }
-
         }
+
+
         val cellInfo = getCellInfo(row, col)
-        if (getNumSurroundingBombs(Location(row, col)) == 0 || firstClick) {
-            cellInfo.isOpen = !cellInfo.isBomb
-            openClearCellsHelper(row - 1, col, false)
-            openClearCellsHelper(row + 1, col, false)
-            openClearCellsHelper(row, col - 1, false)
-            openClearCellsHelper(row, col + 1, false)
-        } else {
+        if (!cellInfo.isBomb) {
             cellInfo.isOpen = true
+            if (getNumSurroundingBombs(Location(row, col)) == 0 || firstClick) {
+                cellInfo.isOpen = !cellInfo.isBomb
+                openClearCellsHelper(row - 1, col, false)
+                openClearCellsHelper(row + 1, col, false)
+                openClearCellsHelper(row, col - 1, false)
+                openClearCellsHelper(row, col + 1, false)
+            }
         }
     }
 

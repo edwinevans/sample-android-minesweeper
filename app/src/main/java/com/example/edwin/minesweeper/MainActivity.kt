@@ -22,30 +22,24 @@ class MainActivity : AppCompatActivity() {
     var game = Game(numRows = 8, numColumns = 5, numBombs = 6, gameState = GameState.PLAYING)
 
     // UI views for each cell
-    var cellViews = Array<Array<Button?>>(game.numRows) { arrayOfNulls<Button>(game.numColumns) }
+    var cellViews = Array(game.numRows) { arrayOfNulls<Button>(game.numColumns) }
     fun getCellView(row: Int, col: Int): Button {
         return cellViews[row][col]!!
     }
 
     // Data for each cell
-    var board = Array<Array<CellInfo?>>(game.numRows) { arrayOfNulls<CellInfo>(game.numColumns) }
+    var board = Array(game.numRows) { arrayOfNulls<CellInfo>(game.numColumns) }
     fun getCellInfo(row: Int, col: Int): CellInfo { return board[row][col]!! }
 
 
     private fun getNumSurroundingBombs(loc: Location): Int {
         var count = 0
-        val rowStart = loc.row - 1
-        val rowEnd = loc.row + 1
-        for (row in rowStart..rowEnd) {
+        for (row in loc.row - 1..loc.row + 1) {
             if (row >= 0 && row < game.numRows) {
-                val colStart = loc.col - 1
-                val colEnd = loc.col + 1
-                for (col in colStart..colEnd) {
+                for (col in loc.col - 1..loc.col + 1) {
                     if (col >= 0 && col < game.numColumns) {
                         if (row !== loc.row || col !== loc.col) {
-                            Log.d(TAG, "Test $row,$col")
-                            val cellInfo = board[row][col]
-                            if (cellInfo!!.isBomb) {
+                            if (getCellInfo(row,col).isBomb) {
                                 count++
                             }
                         }
@@ -70,19 +64,20 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        createGame()
 
+        findViewById(R.id.new_game).setOnClickListener {
+            val rows = findViewById(R.id.gridRows) as LinearLayout
+            rows.removeAllViews()
+            createGame()
+        }
+    }
+
+    fun createGame() {
+        game.gameState = GameState.PLAYING
         initializeBoard()
         createBoardUI()
         updateBoardUI()
-
-        findViewById(R.id.new_game).setOnClickListener {
-            game.gameState = GameState.PLAYING
-            initializeBoard()
-            val rows = findViewById(R.id.gridRows) as LinearLayout
-            rows.removeAllViews()
-            createBoardUI()
-            updateBoardUI()
-        }
     }
 
     private fun initializeBoard() {
@@ -142,11 +137,11 @@ class MainActivity : AppCompatActivity() {
     private fun updateBoardUI() {
         for (row in 0..game.numRows - 1) {
             for (col in 0..game.numColumns - 1) {
-                val cellInfo = board[row][col]
+                val cellInfo = getCellInfo(row, col)
                 var textToShow = ""
-                if (cellInfo!!.isOpen || game.gameState == GameState.LOST) {
-                    textToShow = if (cellInfo!!.isBomb) "X"
-                    else getNumSurroundingBombs(Location(row, col)).toString()
+                if (cellInfo.isOpen || game.gameState == GameState.LOST) {
+                    textToShow = if (cellInfo.isBomb) "X"
+                        else getNumSurroundingBombs(Location(row, col)).toString()
                 }
                 getCellView(row, col).text = textToShow
             }

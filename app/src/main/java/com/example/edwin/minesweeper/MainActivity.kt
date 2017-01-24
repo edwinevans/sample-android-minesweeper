@@ -7,9 +7,7 @@ import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
-
-import java.util.ArrayList
-import java.util.Random
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
     val TAG = "MainActivity"
@@ -64,13 +62,14 @@ class MainActivity : AppCompatActivity() {
         createGame()
 
         findViewById(R.id.new_game).setOnClickListener {
+            // Clear everything and recreate
             val rows = findViewById(R.id.gridRows) as LinearLayout
             rows.removeAllViews()
             createGame()
         }
     }
 
-    fun createGame() {
+    private fun createGame() {
         game.gameState = GameState.PLAYING
         initializeBoard()
         createBoardUI()
@@ -78,20 +77,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeBoard() {
-        val bombLocations = ArrayList<Int>()
-        while (bombLocations.size < game.numBombs) {
-            val r = Random()
-            val location = r.nextInt(game.numRows * game.numColumns)
-            if (!bombLocations.contains(location)) {
-                bombLocations.add(location)
-            }
-        }
+        // Get random locations of bombs
+        var locations = mutableListOf(0..game.numRows * game.numColumns).flatten()
+        Collections.shuffle(locations)
+        val bombLocations = locations.subList(fromIndex = 0, toIndex = game.numBombs)
 
         // Create board and place bombs
         for (row in 0..game.numRows - 1) {
             for (col in 0..game.numColumns - 1) {
                 val location = row * game.numColumns + col
-                val isBomb = bombLocations.contains(location);
+                val isBomb = bombLocations.contains(location)
                 val cellInfo = CellInfo(
                         isBomb = isBomb, location = Location(row, col), isOpen = false)
                 board[row][col] = cellInfo
@@ -99,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun createBoardUI() {
+    private fun createBoardUI() {
         val myLayout = findViewById(R.id.gridRows) as LinearLayout
 
         for (row in 0..game.numRows - 1) {
@@ -158,14 +153,14 @@ class MainActivity : AppCompatActivity() {
             else {
                 val numSurrounding = getNumSurroundingBombs(loc)
                 when (numSurrounding) {
-                    0 -> return "0"
+                    0 -> return ""
                     else -> return numSurrounding.toString()
                 }
 
             }
         }
         else {
-            return "?";
+            return "?"
         }
     }
 
@@ -208,5 +203,4 @@ class MainActivity : AppCompatActivity() {
     private fun openClearCells(row: Int, col: Int) {
         openClearCellsHelper(row, col, true)
     }
-
 }

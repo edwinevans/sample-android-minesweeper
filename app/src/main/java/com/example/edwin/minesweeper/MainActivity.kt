@@ -3,7 +3,6 @@ package com.example.edwin.minesweeper
 import android.graphics.Color
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -12,7 +11,7 @@ import java.util.*
 class MainActivity : AppCompatActivity() {
     val TAG = "MainActivity"
 
-    var game = Game(numRows = 3, numColumns = 1, numBombs = 1, gameState = GameState.PLAYING)
+    var game = Game(numRows = 8, numColumns = 6, numBombs = 10, gameState = GameState.PLAYING)
 
     enum class GameState { WON, LOST, PLAYING }
     class Game(val numRows : Int, val numColumns : Int, val numBombs : Int, var gameState : GameState)
@@ -81,8 +80,6 @@ class MainActivity : AppCompatActivity() {
         val locations = mutableListOf(0..game.numRows * game.numColumns - 1).flatten()
         Collections.shuffle(locations)
         val bombLocations = locations.subList(fromIndex = 0, toIndex = game.numBombs)
-        Log.d(TAG, "bomb locations")
-        Log.d(TAG, bombLocations.toString())
 
         // Create board and place bombs
         for (row in 0..game.numRows - 1) {

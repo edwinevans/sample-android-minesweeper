@@ -1,7 +1,6 @@
 package com.example.edwin.minesweeper;
 
 import android.graphics.Color;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,71 +15,73 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     static final String TAG = "MainActivity";
+
     static final int NUM_ROWS = 8; // 10;
     static final int NUM_COLUMNS = 5; //10;
     static final int NUM_BOMBS = 3;
-    Cell[][] board = new Cell[NUM_ROWS][NUM_COLUMNS];
 
     public enum GameState {
         WON, LOST, PLAYING
     }
     private GameState gameState = GameState.PLAYING;
 
-    static class Cell {
-        boolean isOpen;
-        boolean isBomb;
-        Location location;
-        Button view;
-        int numSurrounding;
+    // UI views for each cell
+    Button[][] cellViews = new Button[NUM_ROWS][NUM_COLUMNS];
+    Button getCellView(int row, int col) {
+        return cellViews[row][col];
+    }
 
-        Cell(boolean isBomb, Location location) {
+    // Data for each cell
+    CellInfo[][] board = new CellInfo[NUM_ROWS][NUM_COLUMNS];
+    CellInfo getCellInfo(int row, int col) {
+        return board[row][col];
+    }
+
+    static class CellInfo {
+        private boolean isOpen;
+        private boolean isBomb;
+        private Location location;
+        private int numSurrounding;
+
+
+        CellInfo(boolean isBomb, Location location) {
             isOpen = false;
             this.isBomb = isBomb;
             this.location = location;
         }
 
+        boolean isBomb() {
+            return isBomb;
+        }
+
+        boolean isOpen() {
+            return isOpen;
+        }
+
+        int getNumSurrounding() {
+            return numSurrounding;
+        }
+
+        void setNumSurrounding(int pNumSourrounding) {
+            numSurrounding = pNumSourrounding;
+        }
+
+        void setIsOpen(boolean isOpen) {
+            this.isOpen = isOpen;
+        }
+
         @Override
         public String toString() {
-            return "Cell{" +
-                    "location=" + location +
+            return "CellInfo{" +
                     ", isBomb=" + isBomb +
                     ", isOpen=" + isOpen +
                     ", numSurrounding=" + numSurrounding +
                     '}';
         }
 
-        public boolean isBomb() {
-            return isBomb;
-        }
-
-        public boolean isOpen() {
-            return isOpen;
-        }
-
-        public int getNumSurrounding() {
-            return numSurrounding;
-        }
-
-        public void setNumSurrounding(int pNumSourrounding) {
-            numSurrounding = pNumSourrounding;
-        }
-
-        public void setIsOpen(boolean isOpen) {
-            this.isOpen = isOpen;
-        }
-
-        public Button getView() {
-            return view;
-        }
-
-        public void setView(Button view) {
-            this.view = view;
-        }
-
-        public Location getLocation() {
+        Location getLocation() {
             return location;
         }
-
     }
 
     static class Location {
@@ -92,15 +93,15 @@ public class MainActivity extends AppCompatActivity {
             col = pCol;
         }
 
-        public int getRow() {
+        int getRow() {
             return row;
         }
 
-        public int getCol() {
+        int getCol() {
             return col;
         }
 
-        static public int getAsNumber(int row, int col) {
+        static int getAsNumber(int row, int col) {
             return row * NUM_COLUMNS + col;
         }
 
@@ -111,7 +112,9 @@ public class MainActivity extends AppCompatActivity {
 
             Location location = (Location) o;
 
-            if (row != location.row) return false;
+            if (row != location.row) {
+                return false;
+            }
             return col == location.col;
 
         }
@@ -145,8 +148,8 @@ public class MainActivity extends AppCompatActivity {
                     if (col >= 0 && col < NUM_COLUMNS) {
                         if (row != loc.getRow() || col != loc.getCol()) {
                             Log.d(TAG, "Test " + row + "," + col);
-                            Cell cell = board[row][col];
-                            if (cell.isBomb()) {
+                            CellInfo cellInfo = board[row][col];
+                            if (cellInfo.isBomb()) {
                                 count++;
                             }
                         }
@@ -161,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
     private void checkForWin() {
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLUMNS; col++) {
-                if (!getCell(row,col).isOpen() && !getCell(row, col).isBomb()) {
+                if (!getCellInfo(row,col).isOpen() && !getCellInfo(row, col).isBomb()) {
                     return;
                 }
             }
@@ -192,7 +195,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initializeBoard() {
-        List<Integer> bombLocations = new ArrayList<Integer>();
+        List<Integer> bombLocations = new ArrayList<>();
         while (bombLocations.size() < NUM_BOMBS) {
             Random r = new Random();
             Integer location = r.nextInt(NUM_ROWS * NUM_COLUMNS);
@@ -210,26 +213,18 @@ public class MainActivity extends AppCompatActivity {
                     isBomb = true;
                 }
 
-                Cell cell = new Cell(isBomb, new Location(row, col));
-                board[row][col] = cell;
+                CellInfo cellInfo = new CellInfo(isBomb, new Location(row, col));
+                board[row][col] = cellInfo;
 
             }
         }
-
-        //dumpBoard();
 
         // Calculate numbers for surrounding cells
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLUMNS; col++) {
                 int numSurrounding = getNumSurroundingBombs(new Location(row, col));
-                Cell cell = board[row][col];
-                cell.setNumSurrounding(numSurrounding);
-            }
-        }
-
-        for (int row = 0; row < NUM_ROWS; row++) {
-            for (int col = 0; col < NUM_COLUMNS; col++) {
-                int count = getNumSurroundingBombs(new Location(row, col));
+                CellInfo cellInfo = board[row][col];
+                cellInfo.setNumSurrounding(numSurrounding);
             }
         }
     }
@@ -246,17 +241,17 @@ public class MainActivity extends AppCompatActivity {
             for (int col = 0; col < NUM_COLUMNS; col++) {
                 Button button = new Button(this);
                 button.setLayoutParams(new LinearLayout.LayoutParams(150, 150));
-                Cell cell = board[row][col];
-                button.setTag(cell);
+                CellInfo cellInfo = board[row][col];
+                button.setTag(cellInfo);
                 button.setTextSize(16);
-                cell.setView(button);
+                cellViews[row][col] = button;
                 linearLayoutRow.addView(button);
 
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        Cell cell = (Cell)v.getTag();
-                        handleButtonClick(cell);
+                        CellInfo cellInfo = (CellInfo)v.getTag();
+                        handleButtonClick(cellInfo);
                     }
                 });
             }
@@ -268,12 +263,12 @@ public class MainActivity extends AppCompatActivity {
     private void updateBoardUI() {
         for (int row = 0; row < NUM_ROWS; row++) {
             for (int col = 0; col < NUM_COLUMNS; col++) {
-                Cell cell = board[row][col];
+                CellInfo cellInfo = board[row][col];
                 String textToShow = "";
-                if (cell.isOpen() || gameState == GameState.LOST) {
-                    textToShow = cell.isBomb() ? "X" : String.valueOf(cell.getNumSurrounding());
+                if (cellInfo.isOpen() || gameState == GameState.LOST) {
+                    textToShow = cellInfo.isBomb() ? "X" : String.valueOf(cellInfo.getNumSurrounding());
                 }
-                cell.getView().setText(textToShow);
+                getCellView(row, col).setText(textToShow);
             }
         }
 
@@ -293,16 +288,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void handleButtonClick(Cell cell) {
-        if (cell.isBomb()) {
+    private void handleButtonClick(CellInfo cellInfo) {
+        if (cellInfo.isBomb()) {
             gameState = GameState.LOST;
         }
-        openClearCells(cell.getLocation().getRow(), cell.getLocation().getCol());
+        Location location = cellInfo.getLocation();
+        openClearCells(location.getRow(), location.getCol());
         updateBoardUI();
-    }
-
-    Cell getCell(int row, int col) {
-        return board[row][col];
     }
 
     private void openClearCellsHelper(int row, int col, boolean firstClick) {
@@ -314,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             try {
-                if (getCell(row, col).isOpen()) {
+                if (getCellInfo(row, col).isOpen()) {
                     return; // already opened this [safe algo???]
                 }
             }
@@ -322,16 +314,16 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "huhh???");
             }
         }
-        Cell cell = getCell(row, col);
-        if (cell.getNumSurrounding() == 0 || firstClick) {
-            cell.setIsOpen(!cell.isBomb());
+        CellInfo cellInfo = getCellInfo(row, col);
+        if (cellInfo.getNumSurrounding() == 0 || firstClick) {
+            cellInfo.setIsOpen(!cellInfo.isBomb());
             openClearCellsHelper(row - 1, col, false);
             openClearCellsHelper(row + 1, col, false);
             openClearCellsHelper(row, col - 1, false);
             openClearCellsHelper(row, col + 1, false);
         }
         else {
-            cell.setIsOpen(true);
+            cellInfo.setIsOpen(true);
         }
     }
 
